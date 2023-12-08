@@ -11,10 +11,9 @@ Name: Skandarajah shyamalan
 Version: 1.7.2
 Name URI: https://www.linkedin.com/in/skandarajhshyamalan/
 */
+
 require_once plugin_dir_path(__FILE__) . 'activate-plugin.php';
 require_once plugin_dir_path(__FILE__) . 'deactivate-plugin.php';
-register_deactivation_hook(__FILE__, 'my_custom_plugin_uninstall');
-register_activation_hook(__FILE__, 'my_custom_plugin_install');
 
 
 
@@ -23,10 +22,10 @@ register_activation_hook(__FILE__, 'my_custom_plugin_install');
 function example_form_plugin(){
   $form_action    = get_permalink();
   if ( ($_SESSION['contact_form_success']) ) {
-     //print_r($_SESSION['message']);
+   // '<br/><br/><br/>'. print_r($_SESSION['message']);
     $contact_form_success = '<p style="color: green">Thank you for Your Messages.</p>';
     unset($_SESSION['contact_form_success']);
-    //unset($_SESSION['message']);
+   // unset($_SESSION['message']);
     }
   
     $markup = <<<EOT
@@ -56,7 +55,7 @@ function example_form_plugin(){
      <div class="mb-3 row">
        <label for="inputPassword" class="col-sm-2 col-form-label fs-5">From when? </label>
        <div class="col-sm-10 fs-5">
-         <input type="datetime-local" class="form-control" name="date_time" placeholder="Your Date" id="date_time">
+          <input type="text"  class="form-control" name="datetimepicker" id="datetimepicker">
        </div>
      </div>
      <div class="mb-3 row">
@@ -85,11 +84,11 @@ function example_form_plugin(){
      <label for="inputPassword" class="col-sm-2 col-form-label fs-5"></label>
      <div class="col-sm-10">
      <div class="row">
-     <div class="col-3">
+     <div class="col-1">
      <input class="form-check-input" type="checkbox" value="1" name="Indoor" id="Indoor">
      <label class="form-check-label" name="Indoor" for="reverseCheck1"> Indoor </label>
      </div>
-      <div class="col-3"><input class="form-check-input" value="1" type="checkbox" name="Outdoor" id="Outdoor">
+      <div class="col-1"><input class="form-check-input" value="1" type="checkbox" name="Outdoor" id="Outdoor">
       <label class="form-check-label" name="Out door" id="Outdoor" for="reverseCheck1">Out door</div> 
     </div>
      </div>
@@ -136,12 +135,25 @@ function example_form_plugin(){
     $Name  = ( isset($_POST['Name']) )  ? trim(strip_tags($_POST['Name'])) : null;
     $email   = ( isset($_POST['Email']) )   ? trim(strip_tags($_POST['Email'])) : null;
     $Phone = ( isset($_POST['Phone']) ) ? trim(strip_tags($_POST['Phone'])) : null;
-    $date_time = ( isset($_POST['date_time']) ) ? trim(strip_tags($_POST['date_time'])) : null;
+    $date_time = ( isset($_POST['datetimepicker']) ) ? trim(strip_tags($_POST['datetimepicker'])) : null;
     $Guests = ( isset($_POST['Guests']) ) ? trim(strip_tags($_POST['Guests'])) : null;
     $Des = ( isset($_POST['Des']) ) ? trim(strip_tags($_POST['Des'])) : null;//
     $Indoor = ( isset($_POST['Indoor']) ) ? trim(strip_tags($_POST['Indoor'])) : null;
     $Outdoor = ( isset($_POST['Outdoor']) ) ? trim(strip_tags($_POST['Outdoor'])) : null;
     
+  
+     insert_row_into_custom_table(
+      $_POST['name']==''?'':$_POST['name'],
+       $_POST['Email']==''?'':$_POST['Email'],
+       $_POST['Phone']==''?'':$_POST['Phone'],
+       $_POST['datetimepicker']==''?'':$_POST['datetimepicker'],
+       $_POST['Guests']==''?'':$_POST['Guests'],
+       $_POST['Des']==''?'':$_POST['Des'],
+       $_POST['Indoor']==''?'':$_POST['Indoor'],
+       $_POST['Outdoor']==''?'':$_POST['Outdoor']
+      );
+
+   
     $to = trim(strip_tags($_POST['Email']));
     $subject = 'Cafe Brontos Booking Confirmationamalan';
     $message = "We are thrilled to confirm your reservation at Brontos.
@@ -156,19 +168,8 @@ function example_form_plugin(){
     $message_1 = 'Reservation Name  :'.$_POST['name'].' <br/> Date :'.$_POST['date_time'].' <br/> Number of Guests:'.$_POST['Guests'].'<br/> Special comment : '.$_POST['Des'].'' ;
 
     $result = wp_mail($to_1, $subject_1, $message_1, $headers);
-    $result = wp_mail($to, $subject, $message, $headers);
-    insert_row_into_custom_table(
-      $_POST['name'],
-       $_POST['Email'],
-       $_POST['Phone'],
-       $_POST['date_time'],
-       $_POST['Guests'],
-       $_POST['Des'],
-       $_POST['Indoor'],
-       $_POST['Outdoor'],
-      );
-        
-    //$_SESSION['message']=$_POST;
+    $result = wp_mail($to, $subject, $message, $headers);  
+    $_SESSION['message']=$_POST;
     $_SESSION['contact_form_success'] = 1;
     header('Location: ' . $_SERVER['HTTP_REFERER']);
     exit();
@@ -204,7 +205,22 @@ function insert_row_into_custom_table($name, $email,$phone,$date_time,$Guests,$D
 }
 
 
+register_deactivation_hook(__FILE__, 'my_custom_plugin_uninstall');
+register_activation_hook(__FILE__, 'my_custom_plugin_install');
 
+function enqueue_custom_scripts_and_styles() {
+ 
+  wp_enqueue_script('jquery', 'https://code.jquery.com/jquery-3.6.4.min.js', array(), '3.6.4', true);
+  wp_enqueue_style('datetimepicker-style', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css', array(), '2.5.20');
+  wp_enqueue_script('datetimepicker-script', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js', array('jquery'), '2.5.20', true);
+  wp_enqueue_script('custom-script', plugins_url() . '/cofe/js/cofescript.js', array('jquery', 'datetimepicker-script'), '1.0', true);
+  wp_localize_script('custom-script', 'custom_script_vars', array(
+      'minDate' => 0,
+      'allowedTimes' => array('08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00')
+  ));
+}
+
+add_action('wp_enqueue_scripts', 'enqueue_custom_scripts_and_styles');
 
 
 
